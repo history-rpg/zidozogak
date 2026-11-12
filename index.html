@@ -1175,6 +1175,20 @@ HG.Art = {
       '.kkkkkkk.',
       '...kwk...',
       '....k....']);
+    // 회복해 주는 주민 표시 (분홍 말풍선 안 빨간 하트)
+    Px.add(scene, 'hmark', [
+      '.kkkkkkk.',
+      'kPPPPPPPk',
+      'kPrrPrrPk',
+      'krwrrrrrk',
+      'krrrrrrrk',
+      'kPrrrrrPk',
+      'kPPrrrPPk',
+      'kPPPrPPPk',
+      'kPPPPPPPk',
+      '.kkkkkkk.',
+      '...kPk...',
+      '....k....']);
     // 그림자
     Px.draw(scene, 'shadow', 12, 4, p => Px.ellipse(p, 6, 2, 5, 1, 'k'));
   }
@@ -4129,7 +4143,7 @@ HG.Art.register(function (scene) {
     ],
     npcs: [
       { id: 'keeper', sprite: 'npc_keeper', x: 17, y: 5, dir: 'left', talk: async ev => keeper(ev) },
-      { id: 'siwoo', sprite: 'npc_siwoo', x: 10, y: 3, dir: 'down', mark: ev => ev.flag('intro') && (!ev.flag('starter') && toolsDone(ev.state) === 3 || ev.flag('seoulClear') && !ev.flag('seoulDebrief') || HG.Kit.pendingDebrief(ev) || ev.flag('seoulDebrief') && nextOpen()), talk: async ev => siwoo(ev) }
+      { id: 'siwoo', heal: true, sprite: 'npc_siwoo', x: 10, y: 3, dir: 'down', mark: ev => ev.flag('intro') && (!ev.flag('starter') && toolsDone(ev.state) === 3 || ev.flag('seoulClear') && !ev.flag('seoulDebrief') || HG.Kit.pendingDebrief(ev) || ev.flag('seoulDebrief') && nextOpen()), talk: async ev => siwoo(ev) }
     ],
     warps: [{ x: 9, y: 10, to: 'seoul', tx: 10, ty: 5, dir: 'down' }, { x: 10, y: 10, to: 'seoul', tx: 11, ty: 5, dir: 'down' }],
     triggers: [{ x: 6, y: 3, w: 2, when: ev => HG.Honor.open(), run: async ev => { await ev.warp('honorhall', 11, HG.maps.honorhall.tiles.length - 3, 'up'); } },
@@ -4833,7 +4847,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 10, y: 11, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'herder', sprite: 'npc_herder', x: 14, y: 5, dir: 'down', mark: ev => !ev.flag('horseJoined') || HG.Kit.revisitMark(ev, 'eastasia', 'herder'), talk: async ev => herder(ev) },
+      { id: 'herder', heal: true, sprite: 'npc_herder', x: 14, y: 5, dir: 'down', mark: ev => !ev.flag('horseJoined') || HG.Kit.revisitMark(ev, 'eastasia', 'herder'), talk: async ev => herder(ev) },
       { id: 'mom', sprite: 'npc_herdermom', x: 6, y: 5, dir: 'down', mark: ev => HG.Kit.revisitMark(ev, 'eastasia', 'mom'), talk: async ev => mom(ev) },
       { id: 'kid', sprite: 'npc_herderkid', x: 17, y: 9, dir: 'left', mark: ev => (!!ev.flag('horseJoined') && !ev.flag('runDone')) || HG.Kit.revisitMark(ev, 'eastasia', 'kid'), talk: async ev => kid(ev) },
       { id: 'elder', sprite: 'npc_elder', x: 7, y: 9, dir: 'right', mark: ev => (!!ev.flag('horseJoined') && !ev.flag('buildDone')) || HG.Kit.revisitMark(ev, 'eastasia', 'elder'), talk: async ev => elder(ev) },
@@ -5525,7 +5539,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 10, y: 11, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'sherpa', sprite: 'npc_sherpa', x: 16, y: 5, dir: 'down', mark: ev => !ev.flag('yakJoined') || HG.Kit.revisitMark(ev, 'southasia', 'sherpa'), talk: async ev => sherpa(ev) },
+      { id: 'sherpa', heal: true, sprite: 'npc_sherpa', x: 16, y: 5, dir: 'down', mark: ev => !ev.flag('yakJoined') || HG.Kit.revisitMark(ev, 'southasia', 'sherpa'), talk: async ev => sherpa(ev) },
       { id: 'nepalmom', sprite: 'npc_nepalmom', x: 6, y: 6, dir: 'down', mark: ev => (!!ev.flag('yakJoined') && !ev.flag('paddyDone')) || HG.Kit.revisitMark(ev, 'southasia', 'nepalmom'), talk: async ev => nepalmom(ev) },
       { id: 'nepalkid', sprite: 'npc_nepalkid', x: 17, y: 9, dir: 'left', mark: ev => HG.Kit.revisitMark(ev, 'southasia', 'nepalkid'), talk: async ev => nepalkid(ev) },
       { id: 'monk', sprite: 'npc_monk', x: 8, y: 9, dir: 'right', mark: ev => HG.Kit.revisitMark(ev, 'southasia', 'monk'), talk: async ev => monk(ev) },
@@ -6217,7 +6231,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 10, y: 11, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'sheikh', sprite: 'npc_sheikh', x: 17, y: 6, dir: 'down', mark: ev => !ev.flag('camelJoined') || HG.Kit.revisitMark(ev, 'westasia', 'sheikh'), talk: async ev => sheikh(ev) },
+      { id: 'sheikh', heal: true, sprite: 'npc_sheikh', x: 17, y: 6, dir: 'down', mark: ev => !ev.flag('camelJoined') || HG.Kit.revisitMark(ev, 'westasia', 'sheikh'), talk: async ev => sheikh(ev) },
       { id: 'datefarmer', sprite: 'npc_datefarmer', x: 15, y: 9, dir: 'down', mark: ev => (!!ev.flag('camelJoined') && !ev.flag('wellDone')) || HG.Kit.revisitMark(ev, 'westasia', 'datefarmer'), talk: async ev => datefarmer(ev) },
       { id: 'mudmaker', sprite: 'npc_mudmaker', x: 5, y: 6, dir: 'down', mark: ev => (!!ev.flag('camelJoined') && !ev.flag('brickDone')) || HG.Kit.revisitMark(ev, 'westasia', 'mudmaker'), talk: async ev => mudmaker(ev) },
       { id: 'saudikid', sprite: 'npc_saudikid', x: 7, y: 9, dir: 'right', wander: 2, talk: async ev => saudikid(ev) },
@@ -6806,7 +6820,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 16, y: 12, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'afranger', sprite: 'npc_afranger', x: 14, y: 4, dir: 'down', mark: ev => !ev.flag('elephantJoined') || HG.Kit.revisitMark(ev, 'africa', 'afranger'), talk: async ev => afranger(ev) },
+      { id: 'afranger', heal: true, sprite: 'npc_afranger', x: 14, y: 4, dir: 'down', mark: ev => !ev.flag('elephantJoined') || HG.Kit.revisitMark(ev, 'africa', 'afranger'), talk: async ev => afranger(ev) },
       { id: 'drummer', sprite: 'npc_drummer', x: 6, y: 5, dir: 'left', mark: ev => HG.Kit.revisitMark(ev, 'africa', 'drummer'), talk: async ev => drummer(ev) },
       { id: 'safari', sprite: 'npc_safari', x: 22, y: 9, dir: 'left', mark: ev => !!ev.flag('elephantJoined') && !ev.flag('safariDone'), talk: async ev => safari(ev) },
       { id: 'afkid', sprite: 'npc_afkid', x: 8, y: 9, dir: 'right', wander: 2, talk: async ev => afkid(ev) },
@@ -7426,7 +7440,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 16, y: 11, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'parkkeeper', sprite: 'npc_parkkeeper', x: 9, y: 6, dir: 'down', mark: ev => !ev.flag('foxJoined') || HG.Kit.revisitMark(ev, 'europe', 'parkkeeper'), talk: async ev => parkkeeper(ev) },
+      { id: 'parkkeeper', heal: true, sprite: 'npc_parkkeeper', x: 9, y: 6, dir: 'down', mark: ev => !ev.flag('foxJoined') || HG.Kit.revisitMark(ev, 'europe', 'parkkeeper'), talk: async ev => parkkeeper(ev) },
       { id: 'astronomer', sprite: 'npc_astronomer', x: 14, y: 4, dir: 'down', mark: ev => !!ev.flag('foxJoined') && !ev.flag('clockDone'), talk: async ev => astronomer(ev) },
       { id: 'londoner', sprite: 'npc_londoner', x: 3, y: 9, dir: 'right', wander: 2, talk: async ev => londoner(ev) },
       { id: 'pilot', sprite: 'npc_pilot', x: 18, y: 11, dir: 'left', talk: async ev => heliHome(ev) },
@@ -8094,7 +8108,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 16, y: 11, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'cornfarmer', sprite: 'npc_cornfarmer', x: 10, y: 5, dir: 'down', mark: ev => !ev.flag('eagleJoined') || HG.Kit.revisitMark(ev, 'namerica', 'cornfarmer'), talk: async ev => cornfarmer(ev) },
+      { id: 'cornfarmer', heal: true, sprite: 'npc_cornfarmer', x: 10, y: 5, dir: 'down', mark: ev => !ev.flag('eagleJoined') || HG.Kit.revisitMark(ev, 'namerica', 'cornfarmer'), talk: async ev => cornfarmer(ev) },
       { id: 'croppilot', sprite: 'npc_pilot2', x: 14, y: 3, dir: 'down', mark: ev => HG.Kit.revisitMark(ev, 'namerica', 'croppilot'), talk: async ev => croppilot(ev) },
       { id: 'pilot', sprite: 'npc_pilot', x: 18, y: 11, dir: 'left', talk: async ev => heliHome(ev) }
     ],
@@ -8692,7 +8706,7 @@ HG.Art.register(function (scene) {
       { kind: 'heli', x: 16, y: 11, talk: async ev => heliHome(ev) }
     ],
     npcs: [
-      { id: 'ponchowoman', sprite: 'npc_ponchowoman', x: 9, y: 7, dir: 'down', mark: ev => !ev.flag('llamaJoined') || HG.Kit.revisitMark(ev, 'samerica', 'ponchowoman'), talk: async ev => ponchowoman(ev) },
+      { id: 'ponchowoman', heal: true, sprite: 'npc_ponchowoman', x: 9, y: 7, dir: 'down', mark: ev => !ev.flag('llamaJoined') || HG.Kit.revisitMark(ev, 'samerica', 'ponchowoman'), talk: async ev => ponchowoman(ev) },
       { id: 'quiteno', sprite: 'npc_quiteno', x: 14, y: 7, dir: 'down', talk: async ev => quiteno(ev) },
       { id: 'pilot', sprite: 'npc_pilot', x: 18, y: 12, dir: 'left', talk: async ev => heliHome(ev) }
     ],
@@ -9267,7 +9281,7 @@ HG.Art.register(function (scene) {
       { kind: 'sign', x: 22, y: 8, talk: ['【부두】 뉴질랜드행 배', '바다 건너 동남쪽에 뉴질랜드라는 섬나라가 있다.'] }
     ],
     npcs: [
-      { id: 'sydneyer', sprite: 'npc_sydneyer', x: 14, y: 6, dir: 'down', mark: ev => !ev.flag('koalaJoined') || HG.Kit.revisitMark(ev, 'oceania', 'sydneyer'), talk: async ev => sydneyer(ev) },
+      { id: 'sydneyer', heal: true, sprite: 'npc_sydneyer', x: 14, y: 6, dir: 'down', mark: ev => !ev.flag('koalaJoined') || HG.Kit.revisitMark(ev, 'oceania', 'sydneyer'), talk: async ev => sydneyer(ev) },
       { id: 'lifeguard', sprite: 'npc_lifeguard', x: 18, y: 10, dir: 'right', mark: ev => (!!ev.flag('koalaJoined') && !ev.flag('beachDone')) || HG.Kit.revisitMark(ev, 'oceania', 'lifeguard'), talk: async ev => lifeguard(ev) },
       { id: 'pilot', sprite: 'npc_pilot', x: 4, y: 4, dir: 'left', talk: async ev => heliHome(ev) },
       { id: 'boss', sprite: 'npc_boss8', x: 22, y: 4, dir: 'down', when: ev => !ev.flag('oceaniaClear'), mark: ev => tasks(ev) >= 3 && !ev.flag('oceaniaClear'), talk: async ev => bossFight(ev) }
@@ -9706,6 +9720,7 @@ HG.Art.register(function (scene) {
 
   // ── 사람들
   HG.Art.person(scene, 'npc_captain', { hair: 'G', shirt: 'r', pants: 'G', shoes: 'k', glasses: true });              // 세종 기지 대장 (붉은 방한복)
+  HG.Art.person(scene, 'npc_medic', { hair: 'B', shirt: 'w', pants: 'u', shoes: 'k' });                               // 기지 의무 대원 (흰 가운)
   HG.Art.person(scene, 'npc_polar', { hair: 'n', shirt: 'o', pants: 'U', shoes: 'k' });                               // 극지 연구원
   HG.Art.person(scene, 'npc_boat', { hair: 'D', shirt: 'u', pants: 'G', shoes: 'k', band: 'w' });                     // 보트 연구원
 
@@ -9781,6 +9796,7 @@ HG.Art.register(function (scene) {
     npcs: [
       { id: 'pilot', sprite: 'npc_pilot', x: 4, y: 4, dir: 'left', talk: async ev => heliHome(ev) },
       { id: 'captain', sprite: 'npc_captain', x: 12, y: 6, dir: 'down', mark: ev => !ev.flag('adelieJoined') || !ev.flag('huddleDone') || HG.Kit.revisitMark(ev, 'antarctica', 'captain'), talk: async ev => captain(ev) },
+      { id: 'medic', heal: true, sprite: 'npc_medic', x: 14, y: 6, dir: 'down', talk: ['기지 의무 대원: 나는 세종 기지의 의무 대원이야. 대원들이 다치거나 아프면 돌봐 주지.', '기지 의무 대원: 남극은 영하의 추위와 거센 바람 때문에 동상을 조심해야 해. 너희 동료들도 지치면 언제든 쉬어 가렴!'] },
       { id: 'boater', sprite: 'npc_boat', x: 8, y: 8, dir: 'left', mark: ev => (!!ev.flag('adelieJoined') && !ev.flag('boatDone')) || HG.Kit.revisitMark(ev, 'antarctica', 'boater'), talk: async ev => boater(ev) },
       { id: 'polar', sprite: 'npc_polar', x: 16, y: 6, dir: 'down', mark: ev => (!!ev.flag('adelieJoined') && !ev.flag('coreDone')) || HG.Kit.revisitMark(ev, 'antarctica', 'polar'), talk: async ev => polar(ev) }
     ],
@@ -10478,14 +10494,19 @@ HG.WorldScene = class extends Phaser.Scene {
   }
 
   // 할 일이 있는 사람 머리 위에 「!」 표시
+  // 머리 위 표시: 「!」 할 일 > 「♥」 동료 회복 (heal: true 인 주민 — 지역마다 한 명)
   refreshMarks() {
     this.npcs.forEach(n => {
-      const on = !this.coverOn && !n.gone && n.mark && n.mark(this.ev);
-      if (on && !n.markImg) {
-        n.markImg = this.add.image(n.spr.x, n.spr.y - 32, 'qmark').setDepth(4000);
-        n.markTw = this.tweens.add({ targets: n.markImg, y: n.markImg.y - 3, yoyo: true, repeat: -1, duration: 350 });
-      } else if (!on && n.markImg) { n.markTw.remove(); n.markImg.destroy(); n.markImg = null; }
+      const vis = !this.coverOn && !n.gone;
+      const key = vis && n.mark && n.mark(this.ev) ? 'qmark' : vis && n.heal ? 'hmark' : null;
+      if (n.markImg && n.markKey !== key) { n.markImg.destroy(); n.markImg = null; }
+      if (key && !n.markImg) { n.markImg = this.add.image(n.spr.x, n.spr.y - 32, key).setDepth(4000); n.markKey = key; }
     });
+  }
+  // 표시가 주민을 따라다니며 위아래로 살짝 흔들림 (돌아다니는 주민도 표시가 제자리에 남지 않게)
+  moveMarks(time) {
+    const bob = -3 * Math.abs(Math.sin(time / 350 * Math.PI / 2));
+    this.npcs.forEach(n => { if (n.markImg) { n.markImg.x = n.spr.x; n.markImg.y = n.spr.y - 32 + bob; } });
   }
 
   // 개발자 모드: 숨은 보물 자리 표시 (★ 아직 못 찾음 · ✓ 찾음)
@@ -10533,6 +10554,7 @@ HG.WorldScene = class extends Phaser.Scene {
 
   // ── 매 프레임: 걷기
   update(time, delta) {
+    this.moveMarks(time);
     if (this.shadow) { this.shadow.x = this.player.x; this.shadow.y = this.player.y - 1; this.shadow.setDepth(this.player.depth - 1); }
     if (this.busy || this.moving || this.dead) return;
     const dir = this.keys.held();
@@ -10627,6 +10649,24 @@ HG.WorldScene = class extends Phaser.Scene {
     }
   }
 
+  // 배틀 뒤 동료가 많이 지쳤으면 ♥ 주민을 알려 줌 (처음 한 번은 시우가 자세히, 그다음은 지도마다 한 번 짧게)
+  async tiredTip(r) {
+    const P = HG.state.party;
+    if (r !== 'win' || !P.length) return;
+    const tired = P.some(m => m.hp <= 0 || m.hp < HG.stat(m, 'hp') / 3);
+    if (!tired) return;
+    const f = HG.state.flags;
+    if (!f.healTip) {
+      f.healTip = true;
+      await this.dlg.say('시우(무전기): 동료가 많이 지쳤네! 머리 위에 분홍 ♥ 가 있는 사람에게 말을 걸면 동료가 모두 회복돼.', '시우: 본부에서는 내가 회복해 줄게. 급할 땐 가방(Esc)의 동물 간식과 열매도 써 봐!');
+      return;
+    }
+    this._tiredTold = this._tiredTold || {};
+    if (this._tiredTold[this.map.id]) return;
+    this._tiredTold[this.map.id] = true;
+    HG.UI.toast(this, '동료가 지쳤어요 · ♥ 주민에게 가 보세요');
+  }
+
   // ── 앞에 있는 것과 말하기
   async interact() {
     const st = HG.state.player;
@@ -10640,6 +10680,8 @@ HG.WorldScene = class extends Phaser.Scene {
         if (typeof npc.talk === 'function') await npc.talk(ev, npc);
         else await ev.say(...npc.talk);
         if (npc.secret) await HG.Secret.check(ev, npc.secret);
+        // ♥ 주민: 이야기가 끝나면 동료 회복 (이미 다 나아 있으면 조용히)
+        if (npc.heal && HG.state.party.some(m => m.hp < HG.stat(m, 'hp'))) { ev.heal(); await ev.say('♥ 동료들이 모두 기운을 되찾았다!'); }
       });
       return;
     }
@@ -10775,6 +10817,7 @@ HG.WorldScene = class extends Phaser.Scene {
           const r0 = HG.stages[HG.state.era].respawn;
           await S.warp(r0.map, r0.x, r0.y, r0.dir);
         }
+        await S.tiredTip(r);
         return r;
       },
       hunt: () => S.overlay('Hunt', {}),
@@ -13210,12 +13253,15 @@ HG.MenuScene = class extends Phaser.Scene {
   }
 
   async main() {
-    const items = ['동료', '도감', '가방', '탐험 길', '기록 카드', '저장하기', '설정', '닫기'];
+    // 「전국 랭킹」은 랭킹 창구가 연결된 공개 주소에서만 보임
+    const items = ['동료', '도감', '가방', '탐험 길', '기록 카드'].concat(HG.Rank && HG.Rank.url ? ['전국 랭킹'] : []).concat(['저장하기', '설정', '닫기']);
     let start = 0;
     while (true) {
-      const i = await HG.UI.choice(this, this.keys, items, { x: HG.W - 6, y: 6 + items.length * 15 + 10, alignRight: true, start, depth: 50 });
-      start = Math.max(0, i);
-      if (i < 0 || i === 7) return;
+      const i0 = await HG.UI.choice(this, this.keys, items, { x: HG.W - 6, y: 6 + items.length * 15 + 10, alignRight: true, start, depth: 50 });
+      start = Math.max(0, i0);
+      if (i0 < 0 || items[i0] === '닫기') return;
+      if (items[i0] === '전국 랭킹') { await HG.Rank.board(this, this.keys); this.clear(); continue; }
+      const i = ['동료', '도감', '가방', '탐험 길', '기록 카드', '저장하기', '설정'].indexOf(items[i0]);
       if (i === 0) await this.party();
       if (i === 1) { const k = await HG.UI.choice(this, this.keys, ['동물 도감', '외계인 도감', '돌아가기'], { x: HG.W - 6, y: 60, alignRight: true, depth: 60 }); if (k === 0) await this.dex(); if (k === 1) await this.alienDex(); }
       if (i === 2) await this.bag();
@@ -13550,7 +13596,7 @@ HG.MenuScene = class extends Phaser.Scene {
     const mins = Math.floor(s.stats.playMs / 60000);
     const ids = HG.dexList();
     const rows = [
-      ['이름', s.player.name],
+      ['별명', s.player.name],
       ['칭호', s.title || '(아직 없음)'],
       ['지금 있는 곳', HG.ERAS.find(e => e.id === s.era).name],
       ['도감', ids.filter(id => s.dex.caught[id]).length + ' / ' + ids.length],
@@ -13564,6 +13610,13 @@ HG.MenuScene = class extends Phaser.Scene {
       this.L(HG.UI.text(this, 24, 28 + i * 14, k, { depth: 11, color: '#6b4a2b' }));
       this.L(HG.UI.text(this, 110, 28 + i * 14, String(v), { depth: 11 }));
     });
+    // 전국 랭킹에 올린 적이 있으면 내 순위 (불러오는 동안 「…」)
+    if (HG.Rank && HG.Rank.url && s.flags.rankNick) {
+      const y = 28 + rows.length * 14;
+      this.L(HG.UI.text(this, 24, y, '전국 랭킹', { depth: 11, color: '#6b4a2b' }));
+      const t = this.L(HG.UI.text(this, 110, y, '…', { depth: 11 }));
+      HG.Rank.list().then(r => { if (t.active) t.setText(r && r.me ? `${r.me.rank}위 / ${r.count}명 (${r.me.nick})` : r && r.ok ? '기록을 찾지 못했어요' : '불러오지 못했어요'); });
+    }
     this.L(this.add.sprite(270, 60, HG.heroKey(), 0).setScale(3).setDepth(11));
     await this.waitKey();
   }
