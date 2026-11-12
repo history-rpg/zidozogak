@@ -1,3 +1,4 @@
+# (재배포 2026-11-12 토큰 권한 수정 후)
 # 지도 조각 대모험 랭킹 창구 (Cloudflare Worker)
 # database_id 는 깃허브 Actions(deploy-rank.yml)가 배포할 때 채워 넣는다.
 name = "jido-rank"
