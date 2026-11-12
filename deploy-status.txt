@@ -1,1 +1,11 @@
-FAIL 2026-11-12T05:33:30Z
+FAIL 2026-11-12T05:34:06Z
+D1 데이터베이스를 만들거나 찾지 못했습니다.
+--- d1 list
+
+Wrangler requires at least Node.js v22.0.0. You are using v20.20.2. Please update your version of Node.js.
+
+Consider using a Node.js version manager such as https://volta.sh/ or https://github.com/nvm-sh/nvm.
+--- d1 create
+Wrangler requires at least Node.js v22.0.0. You are using v20.20.2. Please update your version of Node.js.
+
+Consider using a Node.js version manager such as https://volta.sh/ or https://github.com/nvm-sh/nvm.
