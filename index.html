@@ -705,10 +705,11 @@ HG.UI.prompt = function (scene, label, def, maxLen, opt) {
     // 화면이 어두운 모드여도 글자가 보이도록 글자색·배경색을 직접 정함 (흰 칸에 흰 글자 문제)
     wrap.innerHTML = '<form autocomplete="off" style="background:#e9e2d0;border:4px solid #6b4a2b;outline:3px solid #1a1410;padding:22px 26px;font-family:Galmuri11,sans-serif;color:#1a1410;font-size:22px;text-align:center;min-width:280px;max-width:92vw;box-sizing:border-box">' +
       '<div style="margin-bottom:14px">' + label + '</div>' +
-      '<input id="hgname" type="' + (opt.password ? 'password' : 'text') + '" maxlength="' + (maxLen || 6) + '" enterkeyhint="done" autocapitalize="off" spellcheck="false" style="font-family:Galmuri11,sans-serif;font-size:26px;width:220px;max-width:70vw;text-align:center;padding:6px;border:3px solid #1a1410;background:#ffffff;color:#1a1410;-webkit-text-fill-color:#1a1410;caret-color:#bf4436;color-scheme:light;opacity:1">' +
+      '<input id="hgname" type="' + (opt.password ? 'password' : 'text') + '" maxlength="' + (maxLen || 6) + '"' + (opt.placeholder ? ' placeholder="' + opt.placeholder + '"' : '') + ' enterkeyhint="done" autocapitalize="off" spellcheck="false" style="font-family:Galmuri11,sans-serif;font-size:26px;width:220px;max-width:70vw;text-align:center;padding:6px;border:3px solid #1a1410;background:#ffffff;color:#1a1410;-webkit-text-fill-color:#1a1410;caret-color:#bf4436;color-scheme:light;opacity:1">' +
       '<div style="margin-top:14px"><button type="submit" style="font-family:Galmuri11,sans-serif;font-size:20px;padding:8px 26px;background:#bf4436;color:#e9e2d0;border:3px solid #1a1410;border-radius:8px">확인</button>' +
       (opt.cancel ? ' <button type="button" id="hgcancel" style="font-family:Galmuri11,sans-serif;font-size:20px;padding:8px 18px;background:#7d776c;color:#e9e2d0;border:3px solid #1a1410;border-radius:8px">취소</button>' : '') + '</div>' +
       '<div style="margin-top:10px;font-size:14px;color:#6b4a2b">' + (opt.hint || '이름을 쓰고 엔터 또는 확인') + '</div></form>';
+    wrap.insertAdjacentHTML('afterbegin', '<style>#hgname::placeholder{color:#a39a8a;-webkit-text-fill-color:#a39a8a;opacity:1}</style>');   // 예시 글자는 흐리게
     document.body.appendChild(wrap);
     const form = wrap.querySelector('form'), inp = wrap.querySelector('#hgname');
     inp.value = def || ''; setTimeout(() => { inp.focus(); inp.select(); }, 30);
@@ -2278,7 +2279,7 @@ HG.Rank = {
     if (c === 0) {
       let done = false;
       while (!done) {
-        const nick = await HG.UI.prompt(scene, '랭킹에 쓸 별명', s.flags.rankNick || '', 8, { cancel: true, hint: '2~8글자 · 한글·영어·숫자 · <b>진짜 이름은 쓰지 마세요</b>' });
+        const nick = await HG.UI.prompt(scene, '랭킹에 쓸 별명', s.flags.rankNick || (s.player.name !== '탐험대원' ? s.player.name : ''), 8, { cancel: true, hint: '2~8글자 · 한글·영어·숫자 · <b>진짜 이름은 쓰지 마세요</b>' });
         if (nick === null) break;
         const n = nick.trim().replace(/\s+/g, '');
         if (!/^[가-힣a-zA-Z0-9]{2,8}$/.test(n)) { await dlg.say('별명은 2~8글자, 한글·영어·숫자로만 지어 줘!'); continue; }
@@ -10302,8 +10303,9 @@ HG.TitleScene = class extends Phaser.Scene {
   async newGame() {
     HG.state = HG.newState();
     HG.Rank.hit('start');
-    const name = await HG.UI.prompt(this, '탐험대원 이름은?', '탐험대원', 6);
-    HG.state.player.name = name;
+    // 실명 대신 별명 (엔딩 랭킹에도 이 별명을 먼저 채워 줌)
+    const name = await HG.UI.prompt(this, '탐험대원 별명은?', '', 6, { placeholder: '예) 최강이', hint: '진짜 이름 대신 <b>별명</b>을 써요 · 6글자까지' });
+    HG.state.player.name = (name || '').trim() || '탐험대원';
     // 모습 고르기
     const a = this.add.sprite(HG.W / 2 - 40, 120, 'hero0_explorer', 0).setScale(3).setDepth(40);
     const b = this.add.sprite(HG.W / 2 + 40, 120, 'hero1_explorer', 0).setScale(3).setDepth(40);
