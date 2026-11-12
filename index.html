@@ -2346,7 +2346,7 @@ HG.Rank = {
     if (!(await this.init())) return;
     const st = await this.stats();
     if (!st || !scene.sys.isActive()) return;
-    const t = HG.UI.text(scene, HG.W / 2, 169, `지금 ${st.live}명 탐험 중 · 오늘 ${st.today.starts}명 출발 · 지금까지 ${st.total.endings}명 완주`, { depth: 12, small: true, color: '#e9e2d0', stroke: '#1a1410' }).setOrigin(0.5, 0).setAlpha(0);
+    const t = HG.UI.text(scene, HG.W / 2, 166, `지금 ${Math.max(1, st.live)}명 탐험 중 · 오늘 ${st.today.starts}명 출발 · 지금까지 ${st.total.endings}명 완주`, { depth: 12, small: true, color: '#e9e2d0', stroke: '#1a1410' }).setOrigin(0.5, 0).setAlpha(0);
     scene.tweens.add({ targets: t, alpha: 1, duration: 600 });
   }
 };
