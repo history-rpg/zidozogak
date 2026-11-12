@@ -1,11 +1,14 @@
-FAIL 2026-11-12T05:34:06Z
-D1 데이터베이스를 만들거나 찾지 못했습니다.
---- d1 list
+FAIL 2026-11-12T05:34:43Z
+배포 실패
 
-Wrangler requires at least Node.js v22.0.0. You are using v20.20.2. Please update your version of Node.js.
+ ⛅️ wrangler 4.151.2 (update available 4.160.1)
+───────────────────────────────────────────────
 
-Consider using a Node.js version manager such as https://volta.sh/ or https://github.com/nvm-sh/nvm.
---- d1 create
-Wrangler requires at least Node.js v22.0.0. You are using v20.20.2. Please update your version of Node.js.
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/f864c20f4aef558b2b5f5e89d358fdba/workers/scripts/jido-rank/secrets) failed.[0m
 
-Consider using a Node.js version manager such as https://volta.sh/ or https://github.com/nvm-sh/nvm.
+  No access to the specified resource.
+  
+  If you think this is a bug, please open an issue at: [4mhttps://github.com/cloudflare/workers-sdk/issues/new/choose[0m
+
+
+🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler-2026-11-12_05-34-42_145.log"
