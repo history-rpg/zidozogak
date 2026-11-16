@@ -2693,7 +2693,6 @@ HG.MOVES = {
   '단봉 박치기':{ type: '건조', kind: 'dmg', power: 45, acc: 100, desc: '든든한 몸으로 들이받는다.' },
   '사막 걷기':  { type: '건조', kind: 'dmg', power: 35, acc: 100, first: true, desc: '모래에 빠지지 않는 넓은 발로 먼저 다가가 부딪친다.' },
   '모래바람 막기':{ type: '건조', kind: 'buff', stat: 'def', desc: '긴 속눈썹과 콧구멍을 닫아 모래바람을 막아 방어가 오른다.' },
-  '혹 속 지방': { type: '건조', kind: 'heal', amount: 0.35, desc: '혹에 모아 둔 지방을 에너지로 바꿔 힘을 낸다.' },
   '낙타 발 구르기':{ type: '건조', kind: 'dmg', power: 62, acc: 90, desc: '넓은 발로 모래를 박차며 부딪친다.' },
   // ── 모래가젤 (건조)
   '가젤 뿔 박기':{ type: '건조', kind: 'dmg', power: 45, acc: 100, desc: '구부러진 뿔로 들이받는다.' },
@@ -11222,11 +11221,11 @@ HG.BattleScene = class extends Phaser.Scene {
     return null;
   }
 
-  // 스승이 데리고 나온 동료: 회복은 한 판에 2번까지, 방어 올리기는 한 단계까지 (끝나지 않는 싸움 방지)
+  // 끝나지 않는 싸움 방지: 상대 회복은 한 판에 대장·겨루기 2번, 야생 1번 / 방어 올리기는 누구든 한 단계까지
+  healMax() { return this.opts.trainer ? 2 : 1; }
   foeLimit(f, mv) {
-    if (!this.opts.trainer) return true;
     const M = HG.MOVES[mv];
-    if (M.kind === 'heal') return (f._heals || 0) < 2;
+    if (M.kind === 'heal') return (f._heals || 0) < this.healMax();
     if (M.kind === 'buff' && M.stat === 'def') return this.stages.foe.def < 1;
     return true;
   }
@@ -11259,14 +11258,14 @@ HG.BattleScene = class extends Phaser.Scene {
       if (aSt[mv.stat] >= 2 || (who === 'foe' && !this.foeLimit(atk, moveName))) { await this.msg('더 이상 오르지 않는다!'); return; }
       aSt[mv.stat]++; HG.Sound.sfx('buff');
       this.sparkle(aSpr, 0xe3d49a);
-      await this.msg(`${HG.monName(atk)}의 ${mv.stat === 'atk' ? '공격' : '방어'}이 올랐다!`);
+      await this.msg(`${HG.monName(atk)}의 ${mv.stat === 'atk' ? '공격이' : '방어가'} 올랐다!`);
       return;
     }
     if (mv.kind === 'debuff') {
       if (dSt[mv.stat] <= -2) { await this.msg('더 이상 떨어지지 않는다!'); return; }
       dSt[mv.stat]--; HG.Sound.sfx('debuff');
       this.sparkle(dSpr, 0x9a5ac0);
-      await this.msg(`${HG.monName(def)}의 ${mv.stat === 'atk' ? '공격' : '방어'}이 떨어졌다!`);
+      await this.msg(`${HG.monName(def)}의 ${mv.stat === 'atk' ? '공격이' : '방어가'} 떨어졌다!`);
       return;
     }
     if (mv.kind === 'heal') {
@@ -11277,6 +11276,10 @@ HG.BattleScene = class extends Phaser.Scene {
       HG.Sound.sfx('heal'); this.sparkle(aSpr, 0x6fa04a);
       await this.tweenHp(who === 'me' ? this.meHud : this.foeHud, atk, from);
       await this.msg(`${HG.monName(atk)}의 체력이 회복되었다!`);
+      if (who === 'foe' && !this.opts.trainer) {
+        atk._heals = (atk._heals || 0) + 1;
+        if (atk._heals >= this.healMax()) await this.msg(`${HG.monName(atk)}${HG.josa(HG.monName(atk), '은', '는')} 이제 회복할 힘이 없다!`);
+      }
       if (who === 'foe' && this.opts.trainer) {
         atk._heals = (atk._heals || 0) + 1;
         // 두 번째 회복 때 한 번만 힌트
@@ -11310,7 +11313,17 @@ HG.BattleScene = class extends Phaser.Scene {
     await this.tweenHp(dHud, def, from);
     if (crit) await this.msg('급소에 맞았다!');
     if (tm > 1) await this.msg('효과가 굉장했다!');
-    else if (tm < 1) await this.msg('효과가 별로인 듯하다…');
+    else if (tm < 1) {
+      await this.msg('효과가 별로인 듯하다…');
+      // 처음 한 번: 같은 기후끼리(또는 안 통하는 기후) 싸우고 있으면 시우가 귀띔
+      const f = HG.state && HG.state.flags;
+      if (who === 'me' && f && !f.resistTip) {
+        f.resistTip = true;
+        const same = HG.ARTIFACTS[atk.species].type === HG.ARTIFACTS[def.species].type;
+        await this.msg(same ? '시우(무전기): 같은 기후 동물끼리는 기술이 잘 안 통해!' : `시우(무전기): 「${mv.type}」 기술은 이 동물에게 잘 안 통해!`);
+        await this.msg('시우: 「동료」에서 다른 기후 동료로 바꿔 봐.' + (!this.opts.trainer && !this.opts.must ? ' 힘들면 「도망」쳐도 돼!' : ''));
+      }
+    }
   }
 
   hitFx(spr, type) {
