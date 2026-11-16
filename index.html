@@ -16845,7 +16845,7 @@ HG.Dev = {
       M.push(['스승 앞으로 가기', async () => { const b = scene.nodes.find(n => n.kind === 'boss'); scene.cur = b; scene.hero.setPosition(b.x, b.y - 2); scene.showNode(); }]);
     }
     if (key === 'World' && st && st.taskFlags) M.push(['마을 일 모두 완료', async () => { st.taskFlags.forEach(f => s.flags[f] = true); scene.refreshMarks && scene.refreshMarks(); HG.UI.toast(scene, '마을 일 모두 완료'); }]);
-    if (key === 'World' && st && st.maps) M.push(['스승 앞으로 가기', async () => {
+    if (key === 'World' && st && st.maps) M.push(['보스 앞으로 가기', async () => {
       for (const id of st.maps) { const m = HG.maps[id], b = (m.npcs || []).find(n => n.id === 'boss' || n.id === 'king') || (m.objects || []).find(o => o.kind === 'rift');
         if (!b) continue;
         const w = b.kind === 'rift' ? 2 : 1, h = w, free = (x, y) => m.tiles[y] && m.tiles[y][x] && !(HG.TILES[m.tiles[y][x]] || {}).solid && !(m.npcs || []).some(n => n.x === x && n.y === y);
