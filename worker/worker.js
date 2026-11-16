@@ -5,6 +5,8 @@
 //   POST /score  {dev, nick, region, parts, total, play, sig}   엔딩 점수 올리기 (점수 다시 계산해 검사)
 //   GET  /rank?region=경남&dev=…&nick=…   전국(또는 시도) TOP 50 + 내 순위
 //   POST /rate   {dev, stars}        별점 1~5
+//   POST /feedback {dev, who, text, place}   건의하기 (300자, 바른 말)
+//   /admin/…  (머리글 X-Admin-Key = 금고의 ADMIN_KEY)   관리실: 요약·점수 목록/지우기·건의함 확인/지우기
 // 개인 정보(이름·학교)는 받지 않는다. dev 는 기기마다 만든 무작위 번호.
 // ─────────────────────────────────────────────
 
@@ -16,7 +18,7 @@ const REGIONS = ['서울', '부산', '대구', '인천', '광주', '대전', '�
 const BAD = ['시발', '씨발', 'ㅅㅂ', '병신', 'ㅂㅅ', '개새', '새끼', '좆', '존나', 'ㅈㄴ', '미친', '닥쳐', '꺼져', '등신', '애미', '느금', 'fuck', 'shit', 'sex', '섹스', '야동', '보지', '자지'];
 const LIVE_SEC = 300;   // 최근 5분 안에 알림을 보낸 기기 = 지금 탐험 중
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Key' };
 const json = (o, st = 200, extra = {}) => new Response(JSON.stringify(o), { status: st, headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, CORS, extra) });
 const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const now = () => Math.floor(Date.now() / 1000);
@@ -70,8 +72,12 @@ export default {
       if (path === '/hit' && req.method === 'POST') {
         const b = await req.json().catch(() => ({}));
         if (!okDev(b.dev) || !['open', 'start', 'ending', 'ping'].includes(b.kind)) return json({ ok: false }, 400);
-        if (tooMany(ip, 'hit', 60, 60)) return json({ ok: false, why: 'busy' }, 429);
+        if (tooMany(ip, 'hit', 400, 60)) return json({ ok: false, why: 'busy' }, 429);
         const day = kstDay(), stm = [DB.prepare('INSERT INTO live (dev, seen) VALUES (?1, ?2) ON CONFLICT(dev) DO UPDATE SET seen = ?2').bind(b.dev, now())];
+        if (b.kind === 'open') {
+          stm.push(DB.prepare('INSERT OR IGNORE INTO daydev (day, dev) VALUES (?1, ?2)').bind(day, b.dev));
+          stm.push(DB.prepare('INSERT INTO devices (dev, first, last) VALUES (?1, ?2, ?2) ON CONFLICT(dev) DO UPDATE SET last = ?2').bind(b.dev, day));
+        }
         if (b.kind !== 'ping') {
           const col = { open: 'opens', start: 'starts', ending: 'endings' }[b.kind];
           stm.push(DB.prepare(`INSERT INTO visits (day, ${col}) VALUES (?1, 1) ON CONFLICT(day) DO UPDATE SET ${col} = ${col} + 1`).bind(day));
@@ -100,7 +106,7 @@ export default {
       if (path === '/score' && req.method === 'POST') {
         const b = await req.json().catch(() => null);
         if (!b || !okDev(b.dev) || typeof b.parts !== 'object') return json({ ok: false, why: '잘못된 기록' }, 400);
-        if (tooMany(ip, 'score', 3, 60)) return json({ ok: false, why: '잠시 뒤에 다시 올려 주세요' }, 429);
+        if (tooMany(ip, 'score', 30, 60) || tooMany(b.dev, 'score', 3, 60)) return json({ ok: false, why: '잠시 뒤에 다시 올려 주세요' }, 429);
         const nick = cleanNick(b.nick);
         if (!nick) return json({ ok: false, why: '별명은 2~8글자 한글·영어·숫자로, 바른 말로 지어 주세요' }, 400);
         if (!REGIONS.includes(b.region)) return json({ ok: false, why: '시도를 골라 주세요' }, 400);
@@ -153,9 +159,76 @@ export default {
         const b = await req.json().catch(() => ({}));
         const st = Number(b.stars);
         if (!okDev(b.dev) || !Number.isInteger(st) || st < 1 || st > 5) return json({ ok: false }, 400);
-        if (tooMany(ip, 'rate', 5, 60)) return json({ ok: false }, 429);
+        if (tooMany(ip, 'rate', 40, 60)) return json({ ok: false }, 429);
         await DB.prepare('INSERT INTO ratings (dev, stars, created) VALUES (?1, ?2, ?3) ON CONFLICT(dev) DO UPDATE SET stars = ?2, created = ?3').bind(b.dev, st, new Date().toISOString()).run();
         return json({ ok: true });
+      }
+
+      // ── 건의하기
+      if (path === '/feedback' && req.method === 'POST') {
+        const b = await req.json().catch(() => ({}));
+        if (!okDev(b.dev)) return json({ ok: false, why: '잘못된 요청' }, 400);
+        if (tooMany(ip, 'fb', 20, 60) || tooMany(b.dev, 'fb', 1, 60)) return json({ ok: false, why: '1분 뒤에 다시 보내 주세요' }, 429);
+        const text = typeof b.text === 'string' ? b.text.replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+        if (text.length < 2) return json({ ok: false, why: '내용을 적어 주세요' }, 400);
+        const low = text.toLowerCase().replace(/\s/g, '');
+        if (BAD.some(w => low.includes(w))) return json({ ok: false, why: '바른 말로 다시 적어 주세요' }, 400);
+        const who = b.who === '선생님' ? '선생님' : '학생';
+        const place = typeof b.place === 'string' ? b.place.slice(0, 60) : '';
+        await DB.prepare('INSERT INTO feedback (created, who, text, place, dev) VALUES (?1, ?2, ?3, ?4, ?5)').bind(new Date().toISOString(), who, text, place, b.dev).run();
+        return json({ ok: true });
+      }
+
+      // ── 관리실 (선생님만)
+      if (path.startsWith('/admin/')) {
+        if (!env.ADMIN_KEY) return json({ ok: false, why: '관리실 비밀번호(ADMIN_KEY)가 아직 없어요' }, 503);
+        const key = req.headers.get('X-Admin-Key') || '';
+        if (tooMany(ip, 'admin', 60, 60)) return json({ ok: false, why: '잠시 뒤에' }, 429);
+        if (key !== env.ADMIN_KEY) { await new Promise(r => setTimeout(r, 800)); return json({ ok: false, why: '비밀번호가 맞지 않아요' }, 401); }
+        const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+        if (path === '/admin/summary') {
+          const t = now(), since = new Date(Date.now() + 9 * 3600e3 - 29 * 86400e3).toISOString().slice(0, 10);
+          const [live, days, devs, devAll, devToday, rate, regions, cnt, fb] = await DB.batch([
+            DB.prepare('SELECT COUNT(*) AS n FROM live WHERE seen > ?1').bind(t - LIVE_SEC),
+            DB.prepare('SELECT day, opens, starts, endings FROM visits WHERE day >= ?1 ORDER BY day').bind(since),
+            DB.prepare('SELECT day, COUNT(*) AS n FROM daydev WHERE day >= ?1 GROUP BY day').bind(since),
+            DB.prepare('SELECT COUNT(*) AS n FROM devices'),
+            DB.prepare('SELECT COUNT(*) AS n FROM daydev WHERE day = ?1').bind(kstDay()),
+            DB.prepare('SELECT stars, COUNT(*) AS n FROM ratings GROUP BY stars'),
+            DB.prepare('SELECT region, COUNT(*) AS n, ROUND(AVG(total)) AS avg, MAX(total) AS best FROM scores GROUP BY region ORDER BY n DESC'),
+            DB.prepare('SELECT COUNT(*) AS n, ROUND(AVG(total)) AS avg, ROUND(AVG(play)) AS play FROM scores'),
+            DB.prepare('SELECT COUNT(*) AS n, SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END) AS open FROM feedback')
+          ]);
+          const all = await DB.prepare('SELECT SUM(opens) AS opens, SUM(starts) AS starts, SUM(endings) AS endings FROM visits').first();
+          const dmap = Object.fromEntries(devs.results.map(r => [r.day, r.n]));
+          return json({ ok: true, live: live.results[0].n, today: kstDay(),
+            days: days.results.map(d => Object.assign(d, { devices: dmap[d.day] || 0 })),
+            devices: { total: devAll.results[0].n, today: devToday.results[0].n },
+            totals: { opens: all.opens || 0, starts: all.starts || 0, endings: all.endings || 0 },
+            ratings: rate.results, regions: regions.results, scores: cnt.results[0], feedback: fb.results[0] });
+        }
+        if (path === '/admin/scores') {
+          const r = await DB.prepare('SELECT dev, nick, region, total, animal, alien, photo, passport, quiz, secret, road, piece, play, created, updated FROM scores ORDER BY total DESC, updated ASC LIMIT 1000').all();
+          return json({ ok: true, rows: r.results });
+        }
+        if (path === '/admin/score/delete' && req.method === 'POST') {
+          if (!okDev(b.dev) || typeof b.nick !== 'string') return json({ ok: false }, 400);
+          await DB.prepare('DELETE FROM scores WHERE dev = ?1 AND nick = ?2').bind(b.dev, b.nick).run();
+          return json({ ok: true });
+        }
+        if (path === '/admin/feedback') {
+          const r = await DB.prepare('SELECT id, created, who, text, place, done FROM feedback ORDER BY done ASC, id DESC LIMIT 300').all();
+          return json({ ok: true, rows: r.results });
+        }
+        if (path === '/admin/feedback/done' && req.method === 'POST') {
+          await DB.prepare('UPDATE feedback SET done = ?2 WHERE id = ?1').bind(Number(b.id) || 0, b.done ? 1 : 0).run();
+          return json({ ok: true });
+        }
+        if (path === '/admin/feedback/delete' && req.method === 'POST') {
+          await DB.prepare('DELETE FROM feedback WHERE id = ?1').bind(Number(b.id) || 0).run();
+          return json({ ok: true });
+        }
+        return json({ ok: false, why: 'not found' }, 404);
       }
 
       return json({ ok: false, why: 'not found' }, 404);

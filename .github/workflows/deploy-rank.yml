@@ -16,6 +16,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -60,10 +61,16 @@ jobs:
           echo "$URL" > ../rank-url.txt
           sleep 5
           curl -s "$URL/" > /tmp/ping.txt; cat /tmp/ping.txt
+      - name: 관리실 비밀번호 넣기
+        working-directory: worker
+        shell: bash {0}
+        run: |
+          if [ -z "$ADMIN_KEY" ]; then echo "관리실 비밀번호(ADMIN_KEY)가 금고에 아직 없음" > /tmp/admin.txt; exit 0; fi
+          printf '%s' "$ADMIN_KEY" | wrangler secret put ADMIN_KEY > /tmp/secret.txt 2>&1 && echo "관리실 비밀번호 넣음" > /tmp/admin.txt || { echo "관리실 비밀번호 넣기 실패"; tail -15 /tmp/secret.txt; } > /tmp/admin.txt
       - name: 결과 적기 (성공)
         if: success()
         run: |
-          { echo "OK $(date -u +%Y-%m-%dT%H:%M:%SZ)"; cat rank-url.txt; cat /tmp/ping.txt; } > deploy-status.txt
+          { echo "OK $(date -u +%Y-%m-%dT%H:%M:%SZ)"; cat rank-url.txt; cat /tmp/ping.txt; echo; cat /tmp/admin.txt 2>/dev/null; } > deploy-status.txt
       - name: 결과 적기 (실패)
         if: failure()
         run: |

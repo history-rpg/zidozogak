@@ -705,7 +705,10 @@ HG.UI.prompt = function (scene, label, def, maxLen, opt) {
     // 화면이 어두운 모드여도 글자가 보이도록 글자색·배경색을 직접 정함 (흰 칸에 흰 글자 문제)
     wrap.innerHTML = '<form autocomplete="off" style="background:#e9e2d0;border:4px solid #6b4a2b;outline:3px solid #1a1410;padding:22px 26px;font-family:Galmuri11,sans-serif;color:#1a1410;font-size:22px;text-align:center;min-width:280px;max-width:92vw;box-sizing:border-box">' +
       '<div style="margin-bottom:14px">' + label + '</div>' +
-      '<input id="hgname" type="' + (opt.password ? 'password' : 'text') + '" maxlength="' + (maxLen || 6) + '"' + (opt.placeholder ? ' placeholder="' + opt.placeholder + '"' : '') + ' enterkeyhint="done" autocapitalize="off" spellcheck="false" style="font-family:Galmuri11,sans-serif;font-size:26px;width:220px;max-width:70vw;text-align:center;padding:6px;border:3px solid #1a1410;background:#ffffff;color:#1a1410;-webkit-text-fill-color:#1a1410;caret-color:#bf4436;color-scheme:light;opacity:1">' +
+      (opt.multiline
+        // 긴 글(건의하기): 여러 줄 칸, 엔터는 보내기
+        ? '<textarea id="hgname" rows="4" maxlength="' + (maxLen || 300) + '"' + (opt.placeholder ? ' placeholder="' + opt.placeholder + '"' : '') + ' enterkeyhint="send" spellcheck="false" style="font-family:Galmuri11,sans-serif;font-size:17px;width:380px;max-width:80vw;text-align:left;padding:8px;border:3px solid #1a1410;background:#ffffff;color:#1a1410;-webkit-text-fill-color:#1a1410;caret-color:#bf4436;color-scheme:light;opacity:1;resize:none;line-height:1.4"></textarea>'
+        : '<input id="hgname" type="' + (opt.password ? 'password' : 'text') + '" maxlength="' + (maxLen || 6) + '"' + (opt.placeholder ? ' placeholder="' + opt.placeholder + '"' : '') + ' enterkeyhint="done" autocapitalize="off" spellcheck="false" style="font-family:Galmuri11,sans-serif;font-size:26px;width:220px;max-width:70vw;text-align:center;padding:6px;border:3px solid #1a1410;background:#ffffff;color:#1a1410;-webkit-text-fill-color:#1a1410;caret-color:#bf4436;color-scheme:light;opacity:1">') +
       '<div style="margin-top:14px"><button type="submit" style="font-family:Galmuri11,sans-serif;font-size:20px;padding:8px 26px;background:#bf4436;color:#e9e2d0;border:3px solid #1a1410;border-radius:8px">확인</button>' +
       (opt.cancel ? ' <button type="button" id="hgcancel" style="font-family:Galmuri11,sans-serif;font-size:20px;padding:8px 18px;background:#7d776c;color:#e9e2d0;border:3px solid #1a1410;border-radius:8px">취소</button>' : '') + '</div>' +
       '<div style="margin-top:10px;font-size:14px;color:#6b4a2b">' + (opt.hint || '이름을 쓰고 엔터 또는 확인') + '</div></form>';
@@ -716,7 +719,7 @@ HG.UI.prompt = function (scene, label, def, maxLen, opt) {
     let done = false, composing = false, pendingEnter = false;
     const commit = () => {
       if (done) return; done = true;
-      const v = opt.password ? inp.value : (inp.value.trim().slice(0, maxLen || 6) || def);
+      const v = opt.password ? inp.value : (inp.value.trim().slice(0, maxLen || (opt.multiline ? 300 : 6)) || def);
       wrap.remove(); setTimeout(() => { HG.Keys.typing = false; }, 50);
       HG.Sound.sfx('select'); res(v);
     };
@@ -2171,6 +2174,7 @@ HG.Review = {
       const r = await HG.Rank.rate(5 - si);
       if (r && r.ok) { s.flags.reviewSent = true; HG.Save.save(); }
       await dlg.say('고마워! 끝까지 해 줘서 고마워.');
+      if ((await HG.Review.pick(scene, keys, '만든 선생님께 하고 싶은 말이 있어?', ['있어요!', '없어요'])) === 0) await HG.Rank.suggest(scene, keys, dlg);
     }
     cover.destroy();
   }
@@ -2243,6 +2247,23 @@ HG.Rank = {
   list(region) {
     const s = HG.state, me = s && s.flags.rankNick ? '&dev=' + this.dev() + '&nick=' + encodeURIComponent(s.flags.rankNick) : '';
     return this.get('/rank?' + (region ? 'region=' + encodeURIComponent(region) : '') + me);
+  },
+
+  // ── 건의하기 (메뉴·엔딩): 학생/선생님 고르기 → 300자 글 → 창구로
+  async suggest(scene, keys, dlg) {
+    if (!(await this.init())) return;
+    const w = await HG.Review.pick(scene, keys, '누가 보내나요?', ['학생이에요', '선생님이에요', '그만두기']);
+    if (w < 0 || w === 2) return;
+    while (true) {
+      const text = await HG.UI.prompt(scene, '만든 선생님께 하고 싶은 말', '', 300, { multiline: true, cancel: true,
+        placeholder: '고쳤으면 하는 점, 넣었으면 하는 동물이나 나라, 오류가 난 곳을 적어 주세요.',
+        hint: '300자까지 · 엔터를 누르면 보내져요 · <b>이름이나 학교 같은 개인 정보는 쓰지 마세요</b>' });
+      if (text === null || !text.trim()) return;
+      const r = await this.post('/feedback', { dev: this.dev(), who: w === 1 ? '선생님' : '학생', text: text.trim(), place: HG.state ? (HG.state.era || '') + '/' + (HG.state.player.map || '') : 'title' });
+      if (r && r.ok) { HG.Sound.sfx('stamp'); await dlg.say('보냈어요! 만든 선생님께 바로 전해져요. 고마워요!'); return; }
+      await dlg.say(r && r.why ? r.why : '지금은 보낼 수 없어요. 잠시 뒤에 다시 해 보세요.');
+      if (!r || !/바른 말|내용/.test(r.why || '')) return;
+    }
   },
 
   // 개발자 모드를 쓴 기록인가 (랭킹에 못 올림)
@@ -13254,13 +13275,14 @@ HG.MenuScene = class extends Phaser.Scene {
 
   async main() {
     // 「전국 랭킹」은 랭킹 창구가 연결된 공개 주소에서만 보임
-    const items = ['동료', '도감', '가방', '탐험 길', '기록 카드'].concat(HG.Rank && HG.Rank.url ? ['전국 랭킹'] : []).concat(['저장하기', '설정', '닫기']);
+    const items = ['동료', '도감', '가방', '탐험 길', '기록 카드'].concat(HG.Rank && HG.Rank.url ? ['전국 랭킹', '건의하기'] : []).concat(['저장하기', '설정', '닫기']);
     let start = 0;
     while (true) {
       const i0 = await HG.UI.choice(this, this.keys, items, { x: HG.W - 6, y: 6 + items.length * 15 + 10, alignRight: true, start, depth: 50 });
       start = Math.max(0, i0);
       if (i0 < 0 || items[i0] === '닫기') return;
       if (items[i0] === '전국 랭킹') { await HG.Rank.board(this, this.keys); this.clear(); continue; }
+      if (items[i0] === '건의하기') { this.clear(); await HG.Rank.suggest(this, this.keys, this.dlg || new HG.UI.Dialog(this, this.keys)); this.clear(); continue; }
       const i = ['동료', '도감', '가방', '탐험 길', '기록 카드', '저장하기', '설정'].indexOf(items[i0]);
       if (i === 0) await this.party();
       if (i === 1) { const k = await HG.UI.choice(this, this.keys, ['동물 도감', '외계인 도감', '돌아가기'], { x: HG.W - 6, y: 60, alignRight: true, depth: 60 }); if (k === 0) await this.dex(); if (k === 1) await this.alienDex(); }
