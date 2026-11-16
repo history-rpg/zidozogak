@@ -1,4 +1,4 @@
-OK 2026-11-16T01:41:45Z
+OK 2026-11-16T01:44:33Z
 https://jido-rank.zidozogak.workers.dev
 {"ok":true,"name":"지도 조각 대모험 랭킹"}
-관리실 비밀번호(ADMIN_KEY)가 금고에 아직 없음
+관리실 비밀번호 넣음
