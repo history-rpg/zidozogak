@@ -11994,7 +11994,8 @@ HG.miniBg = function (scene, kind) {
 
 HG.BuildScene = class extends Phaser.Scene {
   constructor() { super('Build'); }
-  init(data) { this.onEnd = data.onEnd; this.p = Object.assign({}, HG.BUILD_DEFAULT, data.p || {}); }
+  // 장면은 다시 쓰이므로(다시 도전) 지난번 판의 상태를 꼭 지움 — 시간 초과(dead)가 남아 있으면 다음 판이 시작하자마자 멈췄음
+  init(data) { this.onEnd = data.onEnd; this.p = Object.assign({}, HG.BUILD_DEFAULT, data.p || {}); this.dead = false; this.paused = false; this.clockEv = null; this.left = 0; }
 
   create() {
     this.escAt = [4, 4];   // 아래쪽 재료 카드와 겹치지 않게 「Esc 그만두기」를 위로
