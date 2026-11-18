@@ -793,6 +793,11 @@ HG.Touch = {
       .tc-btn small { font-size: .62em; opacity: .9; }
       .tc-btn.b { background: rgba(58,106,168,.85); }
       .tc-btn.menu { border-radius: 14px; background: rgba(78,74,67,.85); }
+      /* 휴대폰: 버튼을 게임 위에 반투명하게 겹침 (누를 때만 진하게) */
+      body.tc-over .tc-arm, body.tc-over .tc-mid, body.tc-over .tc-btn { opacity: .42; }
+      body.tc-over .tc-arm.on, body.tc-over .tc-btn.on { opacity: .95; }
+      body.tc-over .tc-pad { background: transparent; }
+      .tc-btn.full { border-radius: 14px; background: rgba(47,125,116,.85); }
       #tc-rotate { position: fixed; inset: 0; z-index: 30; background: #12100e; color: #e9e2d0; display: none; align-items: center; justify-content: center; flex-direction: column; font: 22px Galmuri11, sans-serif; text-align: center; gap: 16px; }
       #tc-rotate .ph { width: 70px; height: 110px; border: 5px solid #e9e2d0; border-radius: 12px; animation: tcrot 1.8s ease-in-out infinite; }
       @keyframes tcrot { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
@@ -861,15 +866,51 @@ HG.Touch = {
     this.bA = btn('a', '<b>A</b><small>결정</small>', 'Space');
     this.bB = btn('b', '<b>B</b><small>취소·달리기</small>', 'KeyX');
     this.bM = btn('menu', '<small>메뉴</small>', 'Escape');
+    // 전체 화면 (주소창 없애기) — 안드로이드는 바로, 아이폰은 「홈 화면에 추가」 안내
+    this.bF = mk('tc tc-btn full', '<small>전체 화면</small>');
+    this.bF.addEventListener('pointerdown', e => { e.preventDefault(); this.fullscreen(); });
+    const upd = () => this.layout();
+    document.addEventListener('fullscreenchange', upd); document.addEventListener('webkitfullscreenchange', upd);
 
     this.rot = mk('', '<div class="ph"></div><div>태블릿을 가로로 돌려 주세요</div>');
     this.rot.id = 'tc-rotate';
+  },
+
+  // 홈 화면에서 열었거나 이미 전체 화면이면 「전체 화면」 버튼을 숨김
+  isFull() {
+    const st = (window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches)) || navigator.standalone;
+    return !!(st || document.fullscreenElement || document.webkitFullscreenElement);
+  },
+  canFull() { const d = document.documentElement; return !!(d.requestFullscreen || d.webkitRequestFullscreen); },
+  async fullscreen() {
+    const d = document.documentElement;
+    if (this.canFull()) {
+      try {
+        await (d.requestFullscreen ? d.requestFullscreen({ navigationUI: 'hide' }) : d.webkitRequestFullscreen());
+        if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+        return;
+      } catch (e) {}
+    }
+    // 아이폰 사파리: 웹 페이지가 전체 화면을 켤 수 없음 → 홈 화면에 추가 안내
+    let tip = document.getElementById('tc-tip');
+    if (!tip) {
+      tip = document.createElement('div'); tip.id = 'tc-tip';
+      tip.style.cssText = 'position:fixed;inset:0;z-index:40;background:rgba(18,16,14,.88);color:#e9e2d0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font:18px/1.6 Galmuri11,sans-serif';
+      tip.innerHTML = '<div>이 브라우저는 바로 전체 화면을 켤 수 없어요.<br><br><b style="color:#ffe14a">사파리 아래 [공유 □↑] → [홈 화면에 추가]</b><br>로 게임을 홈 화면에 놓고,<br>그 아이콘으로 열면 전체 화면이 돼요!<br><br><small style="opacity:.75">(화면을 누르면 닫혀요)</small></div>';
+      tip.addEventListener('pointerdown', e => { e.preventDefault(); tip.remove(); });
+      document.body.appendChild(tip);
+    }
   },
 
   // 화면 크기에 맞춰 게임 화면과 버튼 자리 정하기
   layout() {
     const W = window.innerWidth, H = window.innerHeight;
     this.rot.style.display = H > W * 1.05 ? 'flex' : 'none';
+    // 휴대폰 가로(짧은 쪽이 520px 미만): 게임을 화면 높이에 꽉 채우고 버튼은 위에 반투명하게 겹침
+    const over = W > H && Math.min(W, H) < 520;
+    document.body.classList.toggle('tc-over', over);
+    this.bF.style.display = this.isFull() ? 'none' : 'flex';
+    if (over) return this.layoutOver(W, H);
     const b = Math.round(Math.max(46, Math.min(86, Math.min(W, H) * 0.115)));   // 버튼 한 칸 크기
     const pad = 12, ctrlW = b * 3 + pad * 2, ctrlH = b * 3 + pad * 2;
     // ① 아래쪽에 버튼 띠  ② 양옆에 버튼 기둥 — 게임 화면이 더 크게 나오는 쪽을 고름
@@ -898,6 +939,30 @@ HG.Touch = {
     place(this.bA, ax, ay, A, A); this.bA.style.fontSize = Math.round(b * 0.3) + 'px';
     place(this.bB, ax - Bs - b * 0.25, ay + A * 0.55, Bs, Bs); this.bB.style.fontSize = Math.round(b * 0.27) + 'px';
     place(this.bM, W - pad - b * 1.4, Math.max(4, ay - b * 0.95), b * 1.4, b * 0.6); this.bM.style.fontSize = Math.round(b * 0.36) + 'px';
+    place(this.bF, pad, Math.max(4, cy - b * 1.5 - b * 0.95), b * 1.6, b * 0.6); this.bF.style.fontSize = Math.round(b * 0.3) + 'px';
+    if (HG.game && HG.game.scale) HG.game.scale.refresh();
+  },
+
+  // 휴대폰 가로: 게임은 높이에 꽉, 방향 버튼은 왼쪽·A/B 는 오른쪽 가운데보다 조금 아래
+  // (맨 아래 대화창·배틀 메뉴는 가리지 않도록 버튼 아래 끝을 화면 높이의 70% 위에 둠)
+  layoutOver(W, H) {
+    const g = document.getElementById('game');
+    const gw = Math.min(W, H * 16 / 9), gh = gw * 9 / 16, gx = (W - gw) / 2, gy = (H - gh) / 2;
+    Object.assign(g.style, { left: gx + 'px', top: gy + 'px', width: gw + 'px', height: gh + 'px' });
+    const b = Math.round(Math.max(36, Math.min(56, H * 0.12))), pad = 8;
+    const place = (el, x, y, w, h) => Object.assign(el.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+    const bottom = gy + gh * 0.70, S = b * 3, top = Math.max(gy + b * 0.9, bottom - S);
+    place(this.pad, pad, top, S, S);
+    place(this.arms.up, b, 0, b, b * 1.1); place(this.arms.down, b, b * 1.9, b, b * 1.1);
+    place(this.arms.left, 0, b, b * 1.1, b); place(this.arms.right, b * 1.9, b, b * 1.1, b);
+    place(this.mid, b, b, b, b);
+    // A·B 는 오른쪽 빈 띠에 위아래로 (B 위, A 아래) — 띠가 좁으면 게임 위로 조금 겹침
+    const A = b * 1.3, Bs = b * 1.1, cy = top + S / 2;
+    const ax = W - pad - A, ay = cy + b * 0.05;
+    place(this.bA, ax, ay, A, A); this.bA.style.fontSize = Math.round(b * 0.3) + 'px';
+    place(this.bB, ax + (A - Bs) / 2, ay - Bs - b * 0.25, Bs, Bs); this.bB.style.fontSize = Math.round(b * 0.26) + 'px';
+    place(this.bM, W - pad - b * 1.4, gy + 4, b * 1.4, b * 0.6); this.bM.style.fontSize = Math.round(b * 0.34) + 'px';
+    place(this.bF, pad, gy + 4, b * 1.7, b * 0.6); this.bF.style.fontSize = Math.round(b * 0.28) + 'px';
     if (HG.game && HG.game.scale) HG.game.scale.refresh();
   }
 };
