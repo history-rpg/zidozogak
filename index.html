@@ -9887,7 +9887,7 @@ HG.Art.register(function (scene) {
     ],
     warps: [{ x: 25, y: 7, to: 'icebase', tx: 1, ty: 6, dir: 'right' }, { x: 25, y: 8, to: 'icebase', tx: 1, ty: 7, dir: 'right' }],
     triggers: [
-      { x: 14, y: 1, w: 1, h: 14, when: ev => !ev.flag('adelieJoined'), run: async ev => { await ev.say('시우(무전기): 잠깐! 먼저 기지 대장님을 만나 보자.'); await ev.stepPlayer('up'); } },
+      { x: 14, y: 1, w: 1, h: 14, when: ev => !ev.flag('adelieJoined'), run: async ev => { await ev.say('시우(무전기): 잠깐! 먼저 기지 대장님을 만나 보자.'); await ev.stepPlayer('left'); } },
       { x: 23, y: 7, w: 1, h: 2, when: ev => tasks(ev) < 3 && !ev.flag('antarcticaClear'), run: async ev => { await bossWarn(ev); await ev.stepPlayer('left'); } }
     ],
     onEnter: async ev => { if (!ev.flag('antarcticaArrive')) await arrive(ev); },
@@ -10362,8 +10362,10 @@ HG.TitleScene = class extends Phaser.Scene {
     this.press = HG.UI.text(this, HG.W / 2, 92, '아무 키나 누르세요', { color: '#e9e2d0', stroke: '#1a1410', depth: 10 }).setOrigin(0.5, 0);
     this.tweens.add({ targets: this.press, alpha: 0.2, yoyo: true, repeat: -1, duration: 600 });
     HG.Rank.titleLine(this);   // 지금 탐험 중 · 오늘 · 완주 (랭킹 창구가 있을 때만)
-    const startH = this.keys.push(() => { this.keys.pop(startH); this.press.destroy(); HG.Sound.resume(); HG.Sound.play('title'); this.menu(); });
-    this.input.on('pointerdown', () => { if (this.press.active) { this.keys.pop(startH); this.press.destroy(); HG.Sound.resume(); HG.Sound.play('title'); this.menu(); } });
+    this.notice = HG.Notice.load();   // 공지 (게임 주소 옆 notice.txt — 다시 빌드하지 않고 고칠 수 있음)
+    const go = async () => { this.press.destroy(); HG.Sound.resume(); HG.Sound.play('title'); await HG.Notice.show(this, await this.notice); this.menu(); };
+    const startH = this.keys.push(() => { this.keys.pop(startH); go(); });
+    this.input.on('pointerdown', () => { if (this.press.active) { this.keys.pop(startH); go(); } });
   }
 
   async menu() {
@@ -10430,6 +10432,28 @@ HG.TitleScene = class extends Phaser.Scene {
   }
 };
 
+// 공지 — 게임과 같은 곳에 있는 notice.txt 를 읽어 첫 화면에서 한 번 보여 준다.
+//   한 줄이 대화창 한 쪽. 비어 있거나 파일이 없으면 아무것도 안 함. 같은 공지는 창을 새로 열 때마다 한 번만.
+HG.Notice = {
+  load() {
+    if (!/^https?:$/.test(location.protocol)) return Promise.resolve(null);
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    if (ctl) setTimeout(() => ctl.abort(), 2500);
+    return fetch('notice.txt?t=' + Date.now(), { cache: 'no-store', signal: ctl && ctl.signal })
+      .then(r => (r.ok ? r.text() : '')).then(t => t.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean)).catch(() => null);
+  },
+  async show(scene, lines) {
+    if (!lines || !lines.length) return;
+    const key = 'jido_notice_seen', sig = lines.join('|');
+    try { if (sessionStorage.getItem(key) === sig) return; } catch (e) {}
+    const box = scene.add.rectangle(0, 0, HG.W, HG.H, 0x000000, 0.45).setOrigin(0).setDepth(40);
+    HG.Sound.sfx('item');
+    for (const l of lines) await scene.dlg.say(l);
+    box.destroy();
+    try { sessionStorage.setItem(key, sig); } catch (e) {}
+  }
+};
+
 </script>
 <script>
 // ── engine/scenes/world.js
@@ -10483,7 +10507,15 @@ HG.WorldScene = class extends Phaser.Scene {
     this.npcs = [];
     (M.npcs || []).forEach(n => { if (!n.when || n.when(this.ev)) this.addNpc(n); });
 
-    // 주인공
+    // 주인공 — 벽·사람 위에 서 있으면 (예전 버그로 갇힌 저장) 가장 가까운 빈 칸으로 꺼내 줌
+    if (this.solid(st.player.x, st.player.y) && !this.isWarpTile(st.player.x, st.player.y)) {
+      let best = null;
+      for (let r = 1; r < 12 && !best; r++) for (let dy = -r; dy <= r && !best; dy++) for (let dx = -r; dx <= r && !best; dx++) {
+        const x = st.player.x + dx, y = st.player.y + dy;
+        if (this.tileAt(x, y) !== null && !this.solid(x, y)) best = [x, y];
+      }
+      if (best) { st.player.x = best[0]; st.player.y = best[1]; }
+    }
     this.player = this.add.sprite(0, 0, HG.heroKey(), 0);
     this.placeSprite(this.player, st.player.x, st.player.y);
     HG.setFace(this.player, st.player.dir);
@@ -10874,6 +10906,7 @@ HG.WorldScene = class extends Phaser.Scene {
       playerFace: dir => { HG.state.player.dir = dir; HG.setFace(S.player, dir); },
       stepPlayer: dir => new Promise(res => {
         const st = HG.state.player; const [dx, dy] = HG.DIRS[dir];
+        if (S.solid(st.x + dx, st.y + dy)) { st.dir = dir; HG.setFace(S.player, dir); res(); return; }   // 벽·사람이 있으면 밀지 않음 (벽 속에 갇히지 않게)
         st.x += dx; st.y += dy; st.dir = dir;
         S.altStep = !S.altStep; HG.setFace(S.player, dir, true, S.altStep);
         S.tweens.add({ targets: S.player, x: st.x * HG.T + 8, y: st.y * HG.T + 15, duration: 200, onUpdate: () => S.player.setDepth(S.player.y), onComplete: () => { HG.setFace(S.player, dir); res(); } });
@@ -16312,14 +16345,14 @@ HG.registerMini = (cls) => { const o = new cls(); cls.KEY = o.sys.settings.key; 
   // ════════════════════════════════════════
   HG.registerMini(class extends HG.MiniGame {
     constructor() { super('Huddle'); }
-    defaults() { return { name: '펭귄 허들링', title: '펭귄 허들링', time: 40, drain: 5, warm: 22, bg: 'snow', music: 'antarctica', help: '방향키로 바깥 펭귄 고르기 · 스페이스 가운데와 자리 바꾸기',
+    defaults() { return { name: '펭귄 허들링', title: '펭귄 허들링', time: 25, drain: 3, warm: 30, bg: 'snow', music: 'antarctica', help: '방향키로 바깥 펭귄 고르기 · 스페이스 가운데와 자리 바꾸기',
       intro: ['기지 대장: 눈보라가 몰아치면 펭귄들은 서로 몸을 붙여 동그랗게 모여. 이걸 「허들링」이라고 해.', '기지 대장: 바깥 펭귄은 점점 추워져! 가운데 따뜻한 자리와 차례로 바꿔 줘. 40초만 버티면 눈보라가 그친단다.'] }; }
     setup() {
       this.add.rectangle(0, 0, HG.W, HG.H, 0xdfe8f0, 0.5).setOrigin(0).setDepth(-5);
       this.cells = []; const cx = 160, cy = 92, d = 38;
       for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) this.cells.push({ x: cx + i * d, y: cy + j * d, center: !i && !j });
       this.ring = [0, 1, 2, 5, 8, 7, 6, 3];
-      this.peng = this.cells.map((c, k) => ({ heat: c.center ? 100 : HG.rand(55, 95), img: this.add.image(c.x, c.y + 12, 'mon_adelie').setOrigin(0.5, 1).setScale(0.75).setDepth(10 + k) }));
+      this.peng = this.cells.map((c, k) => ({ heat: c.center ? 100 : HG.rand(75, 100), img: this.add.image(c.x, c.y + 12, 'mon_adelie').setOrigin(0.5, 1).setScale(0.75).setDepth(10 + k) }));
       const glow = this.add.graphics().setDepth(1); glow.fillStyle(0xffd27a, 0.35).fillCircle(160, 92, 22); glow.fillStyle(0xffe8a8, 0.3).fillCircle(160, 92, 14);
       txt(this, 160, 112, '가운데: 따뜻한 자리', { small: true, color: '#a4462e', depth: 31 }).setOrigin(0.5, 0);
       this.where = this.cells.map((c, k) => k);   // 칸 k 에 있는 펭귄 번호
@@ -16340,7 +16373,7 @@ HG.registerMini = (cls) => { const o = new cls(); cls.KEY = o.sys.settings.key; 
     update(t, dt) {
       if (!this.on) return;
       const s = dt / 1000;
-      this.cells.forEach((c, k) => { const p = this.peng[this.where[k]]; if (c.center) p.heat = Math.min(100, p.heat + this.p.warm * s); else p.heat -= this.p.drain * s * (k === 0 || k === 2 || k === 6 || k === 8 ? 1.2 : 1); });
+      this.cells.forEach((c, k) => { const p = this.peng[this.where[k]]; if (c.center) p.heat = Math.min(100, p.heat + this.p.warm * s); else p.heat -= this.p.drain * s * (k === 0 || k === 2 || k === 6 || k === 8 ? 1.1 : 1); });
       if (Math.random() < 0.5) { const f = this.add.rectangle(HG.rand(0, HG.W), -2, 2, 2, 0xffffff).setDepth(40); this.tweens.add({ targets: f, y: HG.H + 4, x: f.x - 60, duration: 1400, onComplete: () => f.destroy() }); }
       this.draw();
       this.minHeat = Math.min(this.minHeat, ...this.peng.map(p => p.heat));
@@ -16352,7 +16385,7 @@ HG.registerMini = (cls) => { const o = new cls(); cls.KEY = o.sys.settings.key; 
       this.on = true;
       return new Promise(res => {
         this.finish = res;
-        this.timer(this.p.time, () => { if (!this.on) return; this.on = false; res(this.minHeat > 40 ? '★★★' : this.minHeat > 20 ? '★★☆' : '★☆☆'); });
+        this.timer(this.p.time, () => { if (!this.on) return; this.on = false; res(this.minHeat > 30 ? '★★★' : this.minHeat > 12 ? '★★☆' : '★☆☆'); });
         this.input2(a => {
           if (!this.on) return;
           if (a === 'left' || a === 'up') { this.sel = (this.sel + 7) % 8; HG.Sound.sfx('cursor'); }
