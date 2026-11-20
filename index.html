@@ -16345,14 +16345,14 @@ HG.registerMini = (cls) => { const o = new cls(); cls.KEY = o.sys.settings.key; 
   // ════════════════════════════════════════
   HG.registerMini(class extends HG.MiniGame {
     constructor() { super('Huddle'); }
-    defaults() { return { name: '펭귄 허들링', title: '펭귄 허들링', time: 25, drain: 3, warm: 30, bg: 'snow', music: 'antarctica', help: '방향키로 바깥 펭귄 고르기 · 스페이스 가운데와 자리 바꾸기',
+    defaults() { return { name: '펭귄 허들링', title: '펭귄 허들링', time: 30, drain: 3.3, warm: 28, bg: 'snow', music: 'antarctica', help: '방향키로 바깥 펭귄 고르기 · 스페이스 가운데와 자리 바꾸기',
       intro: ['기지 대장: 눈보라가 몰아치면 펭귄들은 서로 몸을 붙여 동그랗게 모여. 이걸 「허들링」이라고 해.', '기지 대장: 바깥 펭귄은 점점 추워져! 가운데 따뜻한 자리와 차례로 바꿔 줘. 40초만 버티면 눈보라가 그친단다.'] }; }
     setup() {
       this.add.rectangle(0, 0, HG.W, HG.H, 0xdfe8f0, 0.5).setOrigin(0).setDepth(-5);
       this.cells = []; const cx = 160, cy = 92, d = 38;
       for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) this.cells.push({ x: cx + i * d, y: cy + j * d, center: !i && !j });
       this.ring = [0, 1, 2, 5, 8, 7, 6, 3];
-      this.peng = this.cells.map((c, k) => ({ heat: c.center ? 100 : HG.rand(75, 100), img: this.add.image(c.x, c.y + 12, 'mon_adelie').setOrigin(0.5, 1).setScale(0.75).setDepth(10 + k) }));
+      this.peng = this.cells.map((c, k) => ({ heat: c.center ? 100 : HG.rand(70, 95), img: this.add.image(c.x, c.y + 12, 'mon_adelie').setOrigin(0.5, 1).setScale(0.75).setDepth(10 + k) }));
       const glow = this.add.graphics().setDepth(1); glow.fillStyle(0xffd27a, 0.35).fillCircle(160, 92, 22); glow.fillStyle(0xffe8a8, 0.3).fillCircle(160, 92, 14);
       txt(this, 160, 112, '가운데: 따뜻한 자리', { small: true, color: '#a4462e', depth: 31 }).setOrigin(0.5, 0);
       this.where = this.cells.map((c, k) => k);   // 칸 k 에 있는 펭귄 번호
@@ -16385,7 +16385,7 @@ HG.registerMini = (cls) => { const o = new cls(); cls.KEY = o.sys.settings.key; 
       this.on = true;
       return new Promise(res => {
         this.finish = res;
-        this.timer(this.p.time, () => { if (!this.on) return; this.on = false; res(this.minHeat > 30 ? '★★★' : this.minHeat > 12 ? '★★☆' : '★☆☆'); });
+        this.timer(this.p.time, () => { if (!this.on) return; this.on = false; res(this.minHeat > 35 ? '★★★' : this.minHeat > 15 ? '★★☆' : '★☆☆'); });
         this.input2(a => {
           if (!this.on) return;
           if (a === 'left' || a === 'up') { this.sel = (this.sel + 7) % 8; HG.Sound.sfx('cursor'); }
