@@ -10443,7 +10443,10 @@ HG.Notice = {
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     if (ctl) setTimeout(() => ctl.abort(), 2500);
     return fetch('notice.txt?t=' + Date.now(), { cache: 'no-store', signal: ctl && ctl.signal })
-      .then(r => (r.ok ? r.text() : '')).then(t => t.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean)).catch(() => null);
+      .then(r => (r.ok ? r.text() : '')).then(t => t.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean)
+        // 줄 앞에 [~2026-11-21 10:00] 을 붙이면 그 시각(한국 시간)이 지나면 그 줄은 안 보임
+        .filter(l => { const m = l.match(/^\[~(\d{4}-\d{2}-\d{2})(?:[ T](\d{1,2}:\d{2}))?\]/); return !m || Date.now() < Date.parse(m[1] + 'T' + (m[2] || '23:59').padStart(5, '0') + ':00+09:00'); })
+        .map(l => l.replace(/^\[~[^\]]*\]\s*/, ''))).catch(() => null);
   },
   async show(scene, lines) {
     if (!lines || !lines.length) return;
