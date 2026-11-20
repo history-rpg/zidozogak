@@ -1646,6 +1646,7 @@ HG.Secret = {
   ROADSIDE: {
   },
   CHANCE: 0.05,   // 한 번 살펴볼 때 나올 확률 (5%)
+  CHANCE_CLEAR: 0.1,   // 그 지역을 클리어한 뒤 (10%)
   roadside(spot, ch) {
     if (!HG.state || !ch || !'To~,".:hNOXC54'.includes(ch)) return null;
     const mapId = spot.split('@')[1];
@@ -1657,7 +1658,9 @@ HG.Secret = {
     if (this.CHANCE < 1 && this._checked.has(spot)) return null;
     this._checked.add(spot);
     // 동물마다 확률을 따로 정할 수 있음 (chance: 0.3 = 30%) — 개발자 모드 100%가 우선
-    if (Math.random() > (this.CHANCE >= 1 ? 1 : (left[0].chance || this.CHANCE))) return null;
+    // 그 지역을 클리어하면 (도감에 만나는 곳이 공개됨) 멸종위기 동물 확률을 10%로 올림
+    const base = left[0].chance || (HG.state.flags[HG.state.era + 'Clear'] ? this.CHANCE_CLEAR : this.CHANCE);
+    if (Math.random() > (this.CHANCE >= 1 ? 1 : base)) return null;
     const xy = spot.split('@')[0].split(',').map(Number);
     return Object.assign({}, left[0], { _at: xy });
   },
