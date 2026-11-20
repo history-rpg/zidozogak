@@ -13506,7 +13506,7 @@ HG.MenuScene = class extends Phaser.Scene {
             const h = HG.dexHint(id);
             this.L(this.add.image(x + 44, y + 22, 'mon_' + id).setScale(0.8).setDepth(12).setTint(0x1a1410).setAlpha(0.55));
             this.L(HG.UI.text(this, x + 44, y + 37, h.cho, { depth: 12, small: true, color: '#6b4a2b' }).setOrigin(0.5, 0));
-            this.L(HG.UI.text(this, x + 44, y + 49, h.where, { depth: 12, small: true, color: h.national ? '#a4462e' : '#8a8478' }).setOrigin(0.5, 0));
+            HG.UI.fit(this.L(HG.UI.text(this, x + 44, y + 49, h.where, { depth: 12, small: true, color: h.national ? '#a4462e' : '#8a8478' }).setOrigin(0.5, 0)), 84);
           } else {
             // 아직 안 간 시대: 물음표 + 시대 이름만
             this.L(HG.UI.text(this, x + 44, y + 16, '?', { depth: 12, color: '#8a8478' }).setOrigin(0.5, 0));
@@ -13652,10 +13652,11 @@ HG.MenuScene = class extends Phaser.Scene {
       else this.L(HG.UI.text(this, 60, 62, '?', { depth: 11, color: '#8a8478' }).setOrigin(0.5, 0).setScale(2));
       this.L(HG.UI.text(this, 24, 130, h.era, { depth: 11, small: true }));
       const msg = !h.open ? `아직 가 보지 않은 ${h.era}에서 만날 수 있어요. 세계 일주를 이어 가 보자!`
-        : h.hidden ? `아직 아무도 본 적 없는 동물이에요. ${h.era} 어딘가에 숨어 있다는 소문이… 맵 구석구석을 탐험해 보자!`
+        : h.hidden ? `아직 아무도 본 적 없는 동물이에요. ${h.era} 어딘가에 숨어 있대요!\n(${h.era} 지도 조각을 되찾으면 만나는 곳을 알려 줄게요)`
+        : h.spot ? `★★★ 멸종위기 동물!\n만나는 곳: 「${h.spot.maps.join('」·「')}」\n살펴볼 곳: ${h.spot.place}\n그 앞에서 스페이스! 아주 드물게 나타나요.\n(서울 본부 시우에게 말하면 다시 갈 수 있어요)`
         : h.national ? `★★★ 멸종위기 동물! ${h.era}의 나무·바위·물가를 구석구석 살펴보면 아주 드물게 만날 수 있어요. 여러 곳을 꼼꼼히 살펴보자.`
         : `아직 만나지 못한 동물이에요. 이름의 첫소리는 「${h.cho}」. ${h.era}의 풀숲을 걷거나, 사람들을 돕거나, 구석구석 살펴보자!`;
-      this.L(HG.UI.text(this, 112, 32, msg, { depth: 11, wrap: 190, lineSpacing: 5 }));
+      this.L(HG.UI.text(this, 112, 32, msg, { depth: 11, wrap: 190, lineSpacing: h.spot || h.hidden ? 2 : 5 }));
       await this.waitKey();
       return;
     }
@@ -13862,7 +13863,13 @@ HG.dexHint = function (id) {
   const national = HG.NATIONAL_ONLY.includes(id);
   // ★★★ 멸종위기 동물은 스테이지 0(seoul, 반달가슴곰)에서만 대놓고 알려 주고, 나머지 지역은 숨김 (이름·모습·사는 곳 모두 ???)
   const hidden = national && A.era !== 'seoul' && !(HG.state && HG.state.flags[A.era + 'Clear']);   // 그 지역을 클리어하면 도감에 그림자와 초성이 나타남
-  return { cho: hidden ? '???' : HG.chosung(A.name), era: e.short, open, national, hidden, where: hidden ? e.short : national ? '★★★ 구석구석' : e.short };
+  // 지역을 클리어하면 ★★★ 동물이 나오는 맵과 살펴볼 곳을 알려 줌 (예: 「아라비아 사막」 · 사막의 바위)
+  let spot = null;
+  if (national && !hidden) {
+    const sec = HG.Secret.all().find(x => x.roadside && x.mon && x.mon[0] === id);
+    if (sec) spot = { maps: (sec.maps || []).map(m => (HG.maps[m] && HG.maps[m].name) || m), place: String(sec.where || '').split(': ').pop() };
+  }
+  return { cho: hidden ? '???' : HG.chosung(A.name), era: e.short, open, national, hidden, spot, where: hidden ? e.short : spot ? '★' + spot.place : national ? '★★★ 구석구석' : e.short };
 };
 
 </script>
