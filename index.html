@@ -13315,6 +13315,7 @@ HG.CreditsScene = class extends Phaser.Scene {
     btn.remove();
     // 개발자에게 후기 보내기 (설문 주소가 설정돼 있을 때만)
     await HG.Rank.endingAsk(this, this.keys, this.dlg);   // 전국 랭킹에 올리기 → 순위표
+    await HG.NextGame.ask(this, this.dlg);   // 다음 모험: 5학년 「시간 조각 대모험」 안내
     if (HG.Review) await HG.Review.ask(this, this.keys, this.dlg);   // 별점
     HG.Sound.stop();
     this.cameras.main.fadeOut(400); await HG.UI.wait(this, 420);
@@ -13360,6 +13361,25 @@ HG.saveScoreCard = function (scene, hide, name) {
     scene.time.delayedCall(1800, () => t.destroy());
     setTimeout(() => { HG._savingCard = false; }, 600);
   });
+};
+
+// ── 다음 모험 안내 — 엔딩을 본 대원에게 5학년 한국사 게임 「시간 조각 대모험」을 권함
+HG.NextGame = {
+  URL: 'https://history-rpg.github.io/history/',
+  SHORT: 'history-rpg.github.io/history',
+  async ask(scene, dlg) {
+    HG.state.flags.nextGameTold = true; HG.Save.save();
+    const cover = scene.add.rectangle(0, 0, HG.W, HG.H, 0x12100e, 0.85).setOrigin(0).setDepth(1990);
+    const t = HG.UI.text(scene, HG.W / 2, 12, '다음 모험! 5학년 역사 여행\n「시간 조각 대모험」\n' + this.SHORT, { depth: 1991, color: '#f0d890', align: 'center', lineSpacing: 4 }).setOrigin(0.5, 0);
+    await dlg.say('시우: 세계 일주를 끝낸 대원에게 비밀 하나! 5학년 버전의 역사 여행 「시간 조각 대모험」이라는 게임도 있대~');
+    await dlg.say('시우: 위에 적힌 주소로 들어가면 해 볼 수 있어!');
+    const c = await dlg.choose('「시간 조각 대모험」을 지금 열어 볼까?', ['지금 열어 보기', '나중에'], 1);
+    if (c === 0) {
+      try { window.open(this.URL, '_blank', 'noopener'); } catch (e) {}
+      await dlg.say('새 창에서 열었어! 안 열렸으면 위 주소를 직접 쳐 보자. (메뉴 「기록 카드」에도 적어 둘게)');
+    } else await dlg.say('시우: 주소는 메뉴 「기록 카드」에 적어 둘게. 꼭 해 봐!');
+    t.destroy(); cover.destroy();
+  }
 };
 
 </script>
@@ -13759,6 +13779,8 @@ HG.MenuScene = class extends Phaser.Scene {
       HG.Rank.list().then(r => { if (t.active) t.setText(r && r.me ? `${r.me.rank}위 / ${r.count}명 (${r.me.nick})` : r && r.ok ? '기록을 찾지 못했어요' : '불러오지 못했어요'); });
     }
     this.L(this.add.sprite(270, 60, HG.heroKey(), 0).setScale(3).setDepth(11));
+    // 엔딩을 본 대원: 다음 모험 안내
+    if (s.flags.nextGameTold && HG.NextGame) this.L(HG.UI.text(this, 268, 108, '다음 모험!\n시간 조각 대모험\nhistory-rpg\n.github.io/history', { depth: 11, small: true, color: '#a4462e', align: 'center', lineSpacing: 2 }).setOrigin(0.5, 0));
     await this.waitKey();
   }
 
